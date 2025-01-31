@@ -3,195 +3,147 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stylish Web Navigator</title>
+    <title>Google Custom Search Integration</title>
     <style>
-        /* Global Styles */
-        * {
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f9;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-        }
-
-        body {
-            font-family: 'Arial', sans-serif;
-            display: flex;
-            flex-direction: column;
-            height: 100vh;
-            background: linear-gradient(135deg, #1f1c2c, #928dab);
-            color: #fff;
         }
 
         header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+            background-color: #3b3b98;
+            color: white;
             padding: 15px;
-            background: #2c2c54;
-            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-            z-index: 10;
+            text-align: center;
         }
 
-        header input {
-            flex: 1;
-            margin: 0 10px;
-            padding: 10px 15px;
-            border: 2px solid #575fcf;
-            border-radius: 20px;
-            outline: none;
+        input[type="text"] {
+            width: 70%;
+            padding: 10px;
             font-size: 16px;
-            background: #3c40c6;
-            color: #fff;
-            transition: all 0.3s ease-in-out;
+            margin-top: 10px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
         }
 
-        header input:focus {
-            border-color: #0be881;
-            background: #575fcf;
-        }
-
-        header button {
+        button {
             padding: 10px 15px;
-            font-size: 16px;
-            color: #fff;
-            background: #575fcf;
+            margin-left: 10px;
+            background-color: #0be881;
+            color: white;
             border: none;
-            border-radius: 20px;
+            border-radius: 5px;
             cursor: pointer;
-            transition: background 0.3s ease;
         }
 
-        header button:hover {
-            background: #0be881;
+        button:hover {
+            background-color: #3c40c6;
         }
 
-        #backButton, #forwardButton {
-            background: #3c40c6;
+        .results {
+            margin-top: 20px;
+            padding: 10px;
         }
 
-        #backButton:hover, #forwardButton:hover {
-            background: #0be881;
+        .result-item {
+            padding: 10px;
+            background-color: white;
+            margin-bottom: 10px;
+            border-radius: 5px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
         }
 
-        iframe {
-            flex: 1;
-            width: 100%;
-            border: none;
-            box-shadow: 0 -4px 15px rgba(0, 0, 0, 0.2);
+        .result-item a {
+            text-decoration: none;
+            color: #333;
+            font-size: 18px;
         }
 
-        /* Loading Spinner */
-        #spinner {
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 50px;
-            height: 50px;
-            border: 5px solid rgba(255, 255, 255, 0.3);
-            border-top: 5px solid #0be881;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-            display: none;
-        }
-
-        @keyframes spin {
-            0% {
-                transform: translate(-50%, -50%) rotate(0deg);
-            }
-            100% {
-                transform: translate(-50%, -50%) rotate(360deg);
-            }
+        .result-item p {
+            color: #555;
+            font-size: 14px;
         }
     </style>
 </head>
 <body>
+
     <header>
-        <button id="backButton" disabled>⬅️</button>
-        <button id="forwardButton" disabled>➡️</button>
-        <input type="text" id="urlInput" placeholder="Enter a website URL..." />
-        <button id="goButton">Go</button>
+        <h1>Google Custom Search</h1>
+        <div>
+            <input type="text" id="searchQuery" placeholder="Search..." />
+            <button id="searchBtn">Search</button>
+        </div>
     </header>
-    <iframe id="webView" src="about:blank"></iframe>
-    <div id="spinner"></div>
+
+    <div class="results" id="resultsContainer">
+        <!-- Search results will appear here -->
+    </div>
 
     <script>
-        const backButton = document.getElementById('backButton');
-        const forwardButton = document.getElementById('forwardButton');
-        const urlInput = document.getElementById('urlInput');
-        const goButton = document.getElementById('goButton');
-        const webView = document.getElementById('webView');
-        const spinner = document.getElementById('spinner');
+        const searchBtn = document.getElementById('searchBtn');
+        const searchQuery = document.getElementById('searchQuery');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const apiKey = 'AIzaSyBiX4rdtg0qfrAcSvWCeyiX_yuWbsSOHV8'; // Your API Key
+        const cxKey = '9716ab9aa7fa44ca2'; // Your Custom Search Engine ID
 
-        let historyStack = [];
-        let currentIndex = -1;
+        // Function to fetch search results
+        const fetchSearchResults = async (query) => {
+            const apiUrl = `https://www.googleapis.com/customsearch/v1?q=${query}&cx=${cxKey}&key=${apiKey}`;
 
-        // Navigate to a new URL
-        const navigateTo = (url) => {
-            if (url === '') return;
+            try {
+                const response = await fetch(apiUrl);
+                const data = await response.json();
 
-            // If the URL is Google Custom Search URL, append the search query
-            if (url.startsWith("https://cse.google.com/cse")) {
-                let query = urlInput.value.trim();
+                // Clear previous results
+                resultsContainer.innerHTML = '';
+
+                // Check if results are available
+                if (data.items && data.items.length > 0) {
+                    data.items.forEach(item => {
+                        const resultItem = document.createElement('div');
+                        resultItem.classList.add('result-item');
+
+                        const title = document.createElement('a');
+                        title.href = item.link;
+                        title.textContent = item.title;
+                        title.target = '_blank';
+
+                        const snippet = document.createElement('p');
+                        snippet.textContent = item.snippet;
+
+                        resultItem.appendChild(title);
+                        resultItem.appendChild(snippet);
+                        resultsContainer.appendChild(resultItem);
+                    });
+                } else {
+                    resultsContainer.innerHTML = 'No results found.';
+                }
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                resultsContainer.innerHTML = 'An error occurred while fetching the results.';
+            }
+        };
+
+        // Event listener for search button
+        searchBtn.addEventListener('click', () => {
+            const query = searchQuery.value.trim();
+            if (query) {
+                fetchSearchResults(query);
+            }
+        });
+
+        // Optional: Trigger search on pressing Enter
+        searchQuery.addEventListener('keypress', (event) => {
+            if (event.key === 'Enter') {
+                const query = searchQuery.value.trim();
                 if (query) {
-                    // Adding the search term to the CSE URL
-                    url = `https://cse.google.com/cse?cx=9716ab9aa7fa44ca2&q=${encodeURIComponent(query)}`;
+                    fetchSearchResults(query);
                 }
             }
-
-            spinner.style.display = 'block'; // Show spinner
-            webView.src = url;
-            if (currentIndex === historyStack.length - 1) {
-                historyStack.push(url);
-                currentIndex++;
-            } else {
-                historyStack = historyStack.slice(0, currentIndex + 1);
-                historyStack.push(url);
-                currentIndex++;
-            }
-            updateButtons();
-        };
-
-        // Update button states
-        const updateButtons = () => {
-            backButton.disabled = currentIndex <= 0;
-            forwardButton.disabled = currentIndex >= historyStack.length - 1;
-        };
-
-        // Event listeners
-        goButton.addEventListener('click', () => {
-            const url = urlInput.value.trim();
-            if (url) navigateTo(url);
-        });
-
-        backButton.addEventListener('click', () => {
-            if (currentIndex > 0) {
-                currentIndex--;
-                webView.src = historyStack[currentIndex];
-                urlInput.value = historyStack[currentIndex];
-                updateButtons();
-            }
-        });
-
-        forwardButton.addEventListener('click', () => {
-            if (currentIndex < historyStack.length - 1) {
-                currentIndex++;
-                webView.src = historyStack[currentIndex];
-                urlInput.value = historyStack[currentIndex];
-                updateButtons();
-            }
-        });
-
-        urlInput.addEventListener('keypress', (event) => {
-            if (event.key === 'Enter') {
-                const url = urlInput.value.trim();
-                if (url) navigateTo(url);
-            }
-        });
-
-        // Hide spinner when the iframe finishes loading
-        webView.addEventListener('load', () => {
-            spinner.style.display = 'none';
         });
     </script>
+
 </body>
 </html>
